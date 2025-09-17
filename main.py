@@ -193,3 +193,169 @@ if __name__ == "__main__":
     assert max_alt_sign_segment([1,-2,3,-4,5]) == 5
     assert max_alt_sign_segment([1,1,-1,-1,1]) == 2
     assert max_alt_sign_segment([0,1,-1,0,-2,2,-2,2,0]) == 4
+
+
+#1
+def moving_avg(a: list[float], k: int) -> list[float]:
+    """Скользящее среднее по окну k (k >= 1)."""
+    n = len(a)
+    if k <= 0 or k > n:
+        return []
+    res: list[float] = []
+    window_sum = sum(a[:k])
+    res.append(window_sum / k)
+    for i in range(k, n):
+        window_sum += a[i] - a[i - k]
+        res.append(window_sum / k)
+    return res
+
+#2
+def rle(seq):
+    """Run-Length Encoding: подряд идущие одинаковые элементы -> (значение, счётчик)."""
+    if not seq:
+        return []
+    res = []
+    cur = seq[0]
+    cnt = 1
+    for x in seq[1:]:
+        if x == cur:
+            cnt += 1
+        else:
+            res.append((cur, cnt))
+            cur, cnt = x, 1
+    res.append((cur, cnt))
+    return res
+
+#3
+def top_k(items, k: int):
+    """
+    Топ-K по частоте БЕЗ словарей: сортировка -> прогоны -> сортировка пар.
+    При равной частоте — лексикографически по элементу.
+    """
+    if k <= 0 or not items:
+        return []
+    arr = sorted(items)  # сгруппируем одинаковые подряд
+    runs: list[tuple[object, int]] = []
+    cur = arr[0]
+    cnt = 1
+    for x in arr[1:]:
+        if x == cur:
+            cnt += 1
+        else:
+            runs.append((cur, cnt))
+            cur, cnt = x, 1
+    runs.append((cur, cnt))
+    runs.sort(key=lambda p: (-p[1], p[0]))
+    return [value for value, _ in runs[:k]]
+
+#4
+def word_set_ops(s1: str, s2: str):
+    """
+    Слова -> множества (lower, split). Вернёт:
+    (пересечение, разность s1-s2, симметрическая разность) — все списки отсортированы.
+    """
+    w1 = set(s1.lower().split())
+    w2 = set(s2.lower().split())
+    inter = sorted(w1 & w2)
+    diff = sorted(w1 - w2)
+    symm = sorted(w1 ^ w2)
+    return inter, diff, symm
+
+#5
+def trim_extremes(a: list[int]) -> list[int]:
+    """
+    Удалить ровно по одному вхождению минимального и максимального значений.
+    Если все равны — вернуть пустой список.
+    Удаляются первые встретившиеся min и max.
+    """
+    if not a:
+        return []
+    mn = min(a)
+    mx = max(a)
+    if mn == mx:
+        return []
+    i_min = a.index(mn)
+    i_max = a.index(mx)
+    i1, i2 = sorted((i_min, i_max))
+    return [x for idx, x in enumerate(a) if idx != i1 and idx != i2]
+
+#6
+def distinct_k_subsegments(a: list[int], k: int) -> int:
+    """Количество различных подотрезков длины k (используем кортежи для хеширования)."""
+    n = len(a)
+    if k <= 0 or k > n:
+        return 0
+    seen = set()
+    for i in range(n - k + 1):
+        seen.add(tuple(a[i:i + k]))
+    return len(seen)
+
+#7
+def can_rearrange_no_equal_adjacent(a: list[int]) -> bool:
+    """
+    Можно ли переставить элементы так, чтобы соседние не были равны?
+    Критерий достижимости: max_freq <= ceil(n/2).
+    Реализация без словарей: считаем максимальный прогон после сортировки.
+    """
+    n = len(a)
+    if n <= 1:
+        return True
+    arr = sorted(a)
+    max_run = run = 1
+    for i in range(1, n):
+        if arr[i] == arr[i - 1]:
+            run += 1
+            if run > max_run:
+                max_run = run
+        else:
+            run = 1
+    return max_run <= (n + 1) // 2
+
+#8
+def rotate90(mat: list[list]):
+    """Поворот квадратной матрицы на 90° по часовой. Возвращает НОВУЮ матрицу."""
+    n = len(mat)
+    if any(len(row) != n for row in mat):
+        raise ValueError("matrix must be square")
+    return [[mat[n - 1 - j][i] for j in range(n)] for i in range(n)]
+
+
+if __name__ == "__main__":
+    # 1) moving_avg
+    print("moving_avg:", moving_avg([1, 2, 3, 4], 2))  # [1.5, 2.5, 3.5]
+    assert moving_avg([1, 2, 3, 4], 2) == [1.5, 2.5, 3.5]
+    assert moving_avg([1, 2], 3) == []
+
+    # 2) rle
+    print("rle list:", rle([1, 1, 1, 2, 2, 3]))        # [(1,3),(2,2),(3,1)]
+    print("rle str :", rle("aaabb"))                   # [('a',3),('b',2)]
+    assert rle([]) == []
+
+    # 3) top_k (без dict)
+    print("top_k:", top_k(['a', 'b', 'a', 'c', 'b', 'a'], 2))  # ['a','b']
+    assert top_k([1, 1, 2, 2, 2, 3], 2) == [2, 1]
+
+    # 4) word_set_ops
+    inter, diff, symm = word_set_ops("a b c", "b d")
+    print("word_set_ops:", inter, diff, symm)  # ['b'] ['a','c'] ['a','c','d']
+    assert inter == ['b'] and diff == ['a', 'c'] and symm == ['a', 'c', 'd']
+
+    # 5) trim_extremes
+    print("trim_extremes:", trim_extremes([5, 1, 3, 5, 2, 1]))  # [3,5,2,1]
+    assert trim_extremes([7, 7, 7]) == []
+
+    # 6) distinct_k_subsegments
+    print("distinct_k_subsegments:", distinct_k_subsegments([1, 2, 1, 2, 3], 3))  # 3
+    assert distinct_k_subsegments([1, 1, 1], 2) == 1
+
+    # 7) can_rearrange_no_equal_adjacent
+    print("can_rearrange_no_equal_adjacent:",
+          can_rearrange_no_equal_adjacent([1, 1, 2, 2, 3]))  # True
+    assert can_rearrange_no_equal_adjacent([1, 1, 1, 2]) is False
+
+    # 8) rotate90
+    m = [[1, 2], [3, 4]]
+    print("rotate90:", rotate90(m))  # [[3,1],[4,2]]
+    assert rotate90([[1, 2], [3, 4]]) == [[3, 1], [4, 2]]
+
+    print("OK")
